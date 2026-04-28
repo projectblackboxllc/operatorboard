@@ -4,7 +4,7 @@
 
 If you find a security issue in OperatorBoard, please **do not open a public GitHub issue**.
 
-Email: security@operatorboard.dev  
+Email: blackboxinfo@proton.me  
 Response target: 48 hours
 
 Include:
