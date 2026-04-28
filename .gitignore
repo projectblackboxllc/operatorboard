@@ -14,3 +14,4 @@ apps/api/data/
 *.sqlite-shm
 *.sqlite-wal
 .claude/settings.local.json
+.DS_Store
