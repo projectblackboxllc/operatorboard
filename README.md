@@ -14,6 +14,10 @@
 
 [Docs](docs/) · [Security](SECURITY.md) · [Disclaimer](DISCLAIMER.md) · [Changelog](CHANGELOG.md) · [operatorboard.dev](https://operatorboard.dev)
 
+<br/>
+
+[![OperatorBoard landing page](docs/screenshots/01-hero.png)](https://operatorboard.dev)
+
 </div>
 
 ---
