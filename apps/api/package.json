@@ -1,0 +1,26 @@
+{
+  "name": "@operatorboard/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.2",
+    "@operatorboard/shared": "workspace:*",
+    "better-sqlite3": "^12.9.0",
+    "fastify": "^5.8.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.6.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

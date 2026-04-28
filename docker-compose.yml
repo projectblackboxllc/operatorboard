@@ -1,0 +1,54 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4100:4100"
+    environment:
+      - OPERATORBOARD_API_KEY=${OPERATORBOARD_API_KEY}
+      - PORT=4100
+      - HOST=0.0.0.0
+      - OPERATORBOARD_TASK_TIMEOUT_MS=${OPERATORBOARD_TASK_TIMEOUT_MS:-60000}
+      - OPERATORBOARD_DB_PATH=/data/operatorboard.sqlite
+      - OPERATORBOARD_SEED=${OPERATORBOARD_SEED:-false}
+      - OPERATORBOARD_ENABLE_DEV_ROUTES=false
+      - OPERATORBOARD_CORS_ORIGINS=${OPERATORBOARD_CORS_ORIGINS:-}
+    volumes:
+      - operatorboard_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4100/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:4100
+        - NEXT_PUBLIC_OPERATORBOARD_API_KEY=${OPERATORBOARD_API_KEY}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  mock-agent:
+    build:
+      context: .
+      dockerfile: examples/mock-agent/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      - MOCK_AGENT_PORT=4200
+      - MOCK_AGENT_HOST=0.0.0.0
+    profiles:
+      - demo
+
+volumes:
+  operatorboard_data:

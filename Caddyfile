@@ -1,0 +1,77 @@
+# OperatorBoard — Caddy reverse proxy
+#
+# Usage (local dev with TLS):
+#   caddy run --config Caddyfile
+#
+# Usage (production, replace with your domain):
+#   Set OPERATORBOARD_DOMAIN env var or replace {$OPERATORBOARD_DOMAIN} below.
+#
+# Caddy auto-provisions TLS certificates via Let's Encrypt when a real domain
+# is used. For localhost, it uses its own CA (trust with: caddy trust).
+
+{
+  # Global options
+  admin off           # Disable the Caddy admin API when not needed
+  email {$OPERATORBOARD_ADMIN_EMAIL}
+}
+
+# ── API (port 4100 → public HTTPS) ───────────────────────────────────────────
+
+{$OPERATORBOARD_DOMAIN:localhost} {
+  # Rate limiting — blunt instrument, tune per your threat model
+  rate_limit {remote_host} 60r/m
+
+  # Block scanners probing common attack paths before they hit the app
+  @blocked path /wp-admin* /wp-login* /phpmyadmin* /.git* /xmlrpc.php /config* /setup*
+  respond @blocked 404
+
+  # Honeypot routes — these are handled by the API itself and logged to audit,
+  # but we add a second layer here to catch anything Fastify doesn't see.
+  @honeypot path /admin* /internal* /v1/agents/register
+  respond @honeypot 404
+
+  # Forward real traffic to the Fastify API
+  reverse_proxy 127.0.0.1:4100 {
+    header_up X-Real-IP {remote_host}
+    header_up X-Forwarded-For {remote_host}
+  }
+
+  # Security headers
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options DENY
+    Referrer-Policy no-referrer
+    Content-Security-Policy "default-src 'none'"
+    # Strip server fingerprint from responses
+    -Server
+    # Never send the API key back in responses
+    -X-Operatorboard-Key
+  }
+
+  # Access log — route to a file you can watch for anomalies
+  log {
+    output file /var/log/operatorboard/access.log {
+      roll_size 10mb
+      roll_keep 5
+    }
+    format json
+  }
+}
+
+# ── Web dashboard (Next.js, port 3000 → public HTTPS) ────────────────────────
+
+{$OPERATORBOARD_DASHBOARD_DOMAIN:localhost:3443} {
+  reverse_proxy 127.0.0.1:3000
+
+  header {
+    X-Content-Type-Options nosniff
+    X-Frame-Options SAMEORIGIN
+    Referrer-Policy strict-origin-when-cross-origin
+    # Tighten as needed — agent-supplied text is rendered in the dashboard.
+    # In split-domain deployments (dashboard and API on different origins) set
+    # OPERATORBOARD_API_ORIGIN to the API's public URL (e.g. https://api.example.com)
+    # so browser fetch calls from the dashboard are not blocked by CSP.
+    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' {$OPERATORBOARD_API_ORIGIN:}"
+    -Server
+  }
+}

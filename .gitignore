@@ -1,0 +1,16 @@
+node_modules/
+.next/
+dist/
+coverage/
+*.tsbuildinfo
+*.log
+
+.env
+.env.local
+.env.*.local
+
+apps/api/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+.claude/settings.local.json

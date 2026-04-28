@@ -1,0 +1,23 @@
+{
+  "name": "operatorboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Human-governed control plane for AI agents.",
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "dev": "pnpm --parallel --filter @operatorboard/api --filter @operatorboard/web dev",
+    "dev:api": "pnpm --filter @operatorboard/api dev",
+    "dev:web": "pnpm --filter @operatorboard/web dev",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm *)",
+      "Bash(venv/bin/pip list *)",
+      "Bash(venv/bin/pip show *)",
+      "Bash(venv/bin/pip check)"
+    ]
+  }
+}
