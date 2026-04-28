@@ -1,0 +1,33 @@
+{
+  "name": "operatorboard",
+  "version": "0.1.0",
+  "description": "Human-governed control plane for AI agents — CLI setup tool",
+  "license": "MIT",
+  "author": "Project Black Box LLC",
+  "homepage": "https://operatorboard.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/projectblackboxllc/operatorboard"
+  },
+  "keywords": [
+    "ai", "agents", "governance", "control-plane", "llm", "approval", "operatorboard"
+  ],
+  "type": "module",
+  "bin": {
+    "operatorboard": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "node --loader ts-node/esm src/cli.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^20"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
