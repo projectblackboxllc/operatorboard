@@ -71,6 +71,15 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
+  examples/backup-attestor:
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.21.0
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+
   examples/mock-agent:
     dependencies:
       '@operatorboard/shared':
@@ -96,13 +105,13 @@ importers:
         specifier: ^5.7.3
         version: 5.9.3
 
-  examples/backup-attestor:
+  packages/cli:
     devDependencies:
-      tsx:
-        specifier: ^4.19.2
-        version: 4.21.0
+      '@types/node':
+        specifier: ^20
+        version: 20.19.39
       typescript:
-        specifier: ^5.7.3
+        specifier: ^5
         version: 5.9.3
 
   packages/shared:
@@ -493,6 +502,9 @@ packages:
 
   '@types/better-sqlite3@7.6.13':
     resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
+
+  '@types/node@20.19.39':
+    resolution: {integrity: sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw==}
 
   '@types/node@22.19.17':
     resolution: {integrity: sha512-wGdMcf+vPYM6jikpS/qhg6WiqSV/OhG+jeeHT/KlVqxYfD40iYJf9/AE1uQxVWFvU7MipKRkRv8NSHiCGgPr8Q==}
@@ -1143,6 +1155,10 @@ snapshots:
   '@types/better-sqlite3@7.6.13':
     dependencies:
       '@types/node': 25.6.0
+
+  '@types/node@20.19.39':
+    dependencies:
+      undici-types: 6.21.0
 
   '@types/node@22.19.17':
     dependencies:

@@ -26,7 +26,7 @@ We ran a hostile audit before shipping: where does the system trust the operator
 
 Open source, MIT licensed, pnpm monorepo, Docker, full test suite.
 
-github.com/projectblackbox/operatorboard
+github.com/projectblackboxllc/operatorboard
 
 If you're building with agents and thinking about governance — would love to hear what you're running into.
 

@@ -87,7 +87,7 @@ The included `Caddyfile` provides:
 ## Getting started
 
 ```bash
-git clone https://github.com/projectblackbox/operatorboard.git
+git clone https://github.com/projectblackboxllc/operatorboard.git
 cd operatorboard
 cp .env.example .env          # set OPERATORBOARD_API_KEY
 docker compose up
