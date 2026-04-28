@@ -1,6 +1,7 @@
 node_modules/
 .next/
 dist/
+!packages/cli/dist/
 coverage/
 *.tsbuildinfo
 *.log

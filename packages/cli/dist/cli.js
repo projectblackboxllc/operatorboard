@@ -1,0 +1,347 @@
+#!/usr/bin/env node
+import { randomBytes } from "node:crypto";
+import { execSync } from "node:child_process";
+import { existsSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { createInterface } from "node:readline";
+// ── ANSI colours (no deps) ────────────────────────────────────────────────────
+const c = {
+    reset: "\x1b[0m",
+    bold: "\x1b[1m",
+    dim: "\x1b[2m",
+    green: "\x1b[32m",
+    yellow: "\x1b[33m",
+    red: "\x1b[31m",
+    cyan: "\x1b[36m",
+    magenta: "\x1b[35m",
+    white: "\x1b[37m",
+    gray: "\x1b[90m",
+};
+const ok = `${c.green}✓${c.reset}`;
+const warn = `${c.yellow}⚠${c.reset}`;
+const err = `${c.red}✗${c.reset}`;
+const arr = `${c.cyan}→${c.reset}`;
+function log(msg) { process.stdout.write(msg + "\n"); }
+function dim(msg) { log(`${c.gray}  ${msg}${c.reset}`); }
+function step(msg) { log(`  ${arr} ${msg}`); }
+function pass(msg) { log(`  ${ok} ${msg}`); }
+function fail(msg) { log(`  ${err} ${c.red}${msg}${c.reset}`); }
+function warn_(msg) { log(`  ${warn} ${c.yellow}${msg}${c.reset}`); }
+function hr() { log(`${c.gray}  ${"─".repeat(54)}${c.reset}`); }
+// ── Banner ────────────────────────────────────────────────────────────────────
+function banner() {
+    log("");
+    log(`${c.bold}${c.magenta}   ╔══════════════════════════════════════════════╗${c.reset}`);
+    log(`${c.bold}${c.magenta}   ║${c.reset}  ${c.bold}${c.white}OperatorBoard${c.reset}  ${c.gray}v0.1.0${c.reset}                        ${c.bold}${c.magenta}║${c.reset}`);
+    log(`${c.bold}${c.magenta}   ║${c.reset}  ${c.dim}Human-governed control plane for AI agents${c.reset}  ${c.bold}${c.magenta}║${c.reset}`);
+    log(`${c.bold}${c.magenta}   ╚══════════════════════════════════════════════╝${c.reset}`);
+    log("");
+}
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function prompt(question) {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    return new Promise((resolve) => {
+        rl.question(`  ${c.cyan}?${c.reset} ${question} `, (answer) => {
+            rl.close();
+            resolve(answer.trim());
+        });
+    });
+}
+function commandExists(cmd) {
+    try {
+        execSync(`command -v ${cmd}`, { stdio: "ignore" });
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function dockerRunning() {
+    try {
+        execSync("docker info", { stdio: "ignore" });
+        return true;
+    }
+    catch {
+        return false;
+    }
+}
+function generateApiKey() {
+    return randomBytes(32).toString("hex");
+}
+async function waitForHealth(url, retries = 30, delayMs = 2000) {
+    const { default: http } = await import("node:http");
+    for (let i = 0; i < retries; i++) {
+        const ok = await new Promise((resolve) => {
+            const req = http.get(url, (res) => { resolve(res.statusCode === 200); });
+            req.on("error", () => resolve(false));
+            req.setTimeout(1500, () => { req.destroy(); resolve(false); });
+        });
+        if (ok)
+            return true;
+        await new Promise((r) => setTimeout(r, delayMs));
+    }
+    return false;
+}
+function openBrowser(url) {
+    const platform = process.platform;
+    const cmd = platform === "darwin" ? "open" : platform === "win32" ? "start" : "xdg-open";
+    try {
+        execSync(`${cmd} ${url}`, { stdio: "ignore" });
+    }
+    catch { /* best-effort */ }
+}
+// ── Docker Compose template ───────────────────────────────────────────────────
+function composeTemplate(apiKey) {
+    return `services:
+  api:
+    image: ghcr.io/projectblackboxllc/operatorboard-api:latest
+    restart: unless-stopped
+    ports:
+      - "4100:4100"
+    environment:
+      - OPERATORBOARD_API_KEY=${apiKey}
+      - PORT=4100
+      - HOST=0.0.0.0
+      - OPERATORBOARD_DB_PATH=/data/operatorboard.sqlite
+      - OPERATORBOARD_SEED=\${OPERATORBOARD_SEED:-false}
+      - OPERATORBOARD_ENABLE_DEV_ROUTES=false
+      - OPERATORBOARD_CORS_ORIGINS=http://localhost:3000
+    volumes:
+      - operatorboard_data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:4100/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    image: ghcr.io/projectblackboxllc/operatorboard-web:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4100
+      - NEXT_PUBLIC_OPERATORBOARD_API_KEY=${apiKey}
+    depends_on:
+      api:
+        condition: service_healthy
+
+  mock-agent:
+    image: ghcr.io/projectblackboxllc/operatorboard-mock-agent:latest
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      - MOCK_AGENT_PORT=4200
+      - MOCK_AGENT_HOST=0.0.0.0
+    profiles:
+      - demo
+
+volumes:
+  operatorboard_data:
+`;
+}
+function envTemplate(apiKey) {
+    return `# OperatorBoard configuration
+# Generated by: npx operatorboard
+# Docs: https://operatorboard.dev/docs
+
+OPERATORBOARD_API_KEY=${apiKey}
+`;
+}
+// ── Commands ──────────────────────────────────────────────────────────────────
+async function cmdInit(demo) {
+    banner();
+    log(`  ${c.bold}Setting up OperatorBoard...${c.reset}`);
+    log("");
+    // 1. Check Docker
+    step("Checking prerequisites");
+    if (!commandExists("docker")) {
+        fail("Docker not found. Install Docker Desktop from https://docker.com/products/docker-desktop");
+        process.exit(1);
+    }
+    if (!dockerRunning()) {
+        fail("Docker daemon is not running. Start Docker Desktop and try again.");
+        process.exit(1);
+    }
+    pass("Docker found and running");
+    // 2. Resolve target directory
+    const answer = await prompt(`Install directory? (default: ./operatorboard)`);
+    const dir = answer === "" ? "./operatorboard" : answer;
+    const absDir = resolve(process.cwd(), dir);
+    if (!existsSync(absDir)) {
+        mkdirSync(absDir, { recursive: true });
+        pass(`Created ${dir}/`);
+    }
+    else {
+        pass(`Using existing ${dir}/`);
+    }
+    const composePath = join(absDir, "docker-compose.yml");
+    const envPath = join(absDir, ".env");
+    // 3. Check for existing install
+    if (existsSync(composePath)) {
+        const overwrite = await prompt("docker-compose.yml already exists. Overwrite? (y/N)");
+        if (overwrite.toLowerCase() !== "y") {
+            log("");
+            warn_("Setup cancelled. Run `npx operatorboard start` in that directory to start.");
+            process.exit(0);
+        }
+    }
+    // 4. Generate API key
+    step("Generating API key");
+    const apiKey = generateApiKey();
+    pass(`API key generated`);
+    // 5. Write files
+    step("Writing configuration files");
+    writeFileSync(composePath, composeTemplate(apiKey), "utf8");
+    writeFileSync(envPath, envTemplate(apiKey), "utf8");
+    pass(`docker-compose.yml written`);
+    pass(`.env written`);
+    log("");
+    hr();
+    log(`  ${c.bold}${c.yellow}⚠  Save your API key — store it somewhere safe.${c.reset}`);
+    log(`  ${c.bold}     ${apiKey}${c.reset}`);
+    log(`  ${c.gray}     It's also stored in ${dir}/.env${c.reset}`);
+    hr();
+    log("");
+    // 6. Pull images
+    step("Pulling Docker images (this may take a minute on first run)");
+    log("");
+    try {
+        const pullArgs = ["compose", "-f", composePath, "pull"];
+        if (!demo)
+            pullArgs.push("api", "web");
+        execSync(`docker ${pullArgs.join(" ")}`, { stdio: "inherit", cwd: absDir });
+    }
+    catch {
+        warn_("Image pull failed — will try to build from source.");
+        log(`  ${c.gray}  If you cloned the repo, run: pnpm dev${c.reset}`);
+        log(`  ${c.gray}  Or check https://operatorboard.dev/docs${c.reset}`);
+        process.exit(1);
+    }
+    log("");
+    // 7. Start stack
+    step(`Starting OperatorBoard${demo ? " (with demo agent)" : ""}...`);
+    log("");
+    const upArgs = ["compose", "-f", composePath, "up", "-d"];
+    if (demo)
+        upArgs.push("--profile", "demo");
+    execSync(`docker ${upArgs.join(" ")}`, { stdio: "inherit", cwd: absDir });
+    log("");
+    // 8. Wait for health
+    step("Waiting for API to become healthy...");
+    const healthy = await waitForHealth("http://localhost:4100/health");
+    if (!healthy) {
+        warn_("API health check timed out. Check logs with: docker compose logs api");
+    }
+    else {
+        pass("API healthy (http://localhost:4100)");
+    }
+    step("Waiting for dashboard...");
+    const webReady = await waitForHealth("http://localhost:3000");
+    if (webReady) {
+        pass("Dashboard ready (http://localhost:3000)");
+    }
+    // 9. Done
+    log("");
+    hr();
+    log(`  ${c.bold}${c.green}OperatorBoard is running!${c.reset}`);
+    log("");
+    log(`  ${c.bold}Dashboard${c.reset}  http://localhost:3000`);
+    log(`  ${c.bold}API${c.reset}        http://localhost:4100`);
+    log(`  ${c.bold}API key${c.reset}    ${c.dim}stored in ${dir}/.env${c.reset}`);
+    log("");
+    dim("Manage agents, approve actions, and track costs");
+    dim("from the dashboard. Your agents are waiting.");
+    log("");
+    dim("Docs    → https://operatorboard.dev/docs");
+    dim("GitHub  → https://github.com/projectblackboxllc/operatorboard");
+    hr();
+    log("");
+    openBrowser("http://localhost:3000");
+}
+async function cmdStart() {
+    banner();
+    const composePath = resolve(process.cwd(), "docker-compose.yml");
+    if (!existsSync(composePath)) {
+        fail("No docker-compose.yml found in current directory.");
+        log(`  ${c.gray}Run ${c.white}npx operatorboard init${c.reset}${c.gray} first.${c.reset}`);
+        process.exit(1);
+    }
+    step("Starting OperatorBoard...");
+    execSync("docker compose up -d", { stdio: "inherit" });
+    pass("Stack started. Dashboard → http://localhost:3000");
+    openBrowser("http://localhost:3000");
+}
+async function cmdStop() {
+    banner();
+    const composePath = resolve(process.cwd(), "docker-compose.yml");
+    if (!existsSync(composePath)) {
+        fail("No docker-compose.yml found in current directory.");
+        process.exit(1);
+    }
+    step("Stopping OperatorBoard...");
+    execSync("docker compose down", { stdio: "inherit" });
+    pass("OperatorBoard stopped. Data is preserved in the Docker volume.");
+}
+async function cmdStatus() {
+    banner();
+    step("Checking service health...");
+    log("");
+    const services = [
+        { name: "API", url: "http://localhost:4100/health" },
+        { name: "Dashboard", url: "http://localhost:3000" },
+        { name: "Mock agent", url: "http://localhost:4200/health" },
+    ];
+    for (const svc of services) {
+        const up = await waitForHealth(svc.url, 1, 500);
+        if (up) {
+            pass(`${svc.name.padEnd(14)} ${c.green}online${c.reset}  ${c.gray}${svc.url}${c.reset}`);
+        }
+        else {
+            log(`  ${c.gray}◦ ${svc.name.padEnd(14)} offline${c.reset}`);
+        }
+    }
+    log("");
+}
+function cmdHelp() {
+    banner();
+    log(`  ${c.bold}Usage${c.reset}`);
+    log("");
+    log(`  ${c.cyan}npx operatorboard${c.reset}              ${c.gray}Interactive setup (first run)${c.reset}`);
+    log(`  ${c.cyan}npx operatorboard init${c.reset}          ${c.gray}Setup with Docker${c.reset}`);
+    log(`  ${c.cyan}npx operatorboard init --demo${c.reset}   ${c.gray}Setup with demo mock agent${c.reset}`);
+    log(`  ${c.cyan}npx operatorboard start${c.reset}         ${c.gray}Start a configured stack${c.reset}`);
+    log(`  ${c.cyan}npx operatorboard stop${c.reset}          ${c.gray}Stop the stack${c.reset}`);
+    log(`  ${c.cyan}npx operatorboard status${c.reset}        ${c.gray}Check service health${c.reset}`);
+    log("");
+    dim("Docs   → https://operatorboard.dev/docs");
+    dim("GitHub → https://github.com/projectblackboxllc/operatorboard");
+    log("");
+}
+// ── Entry point ───────────────────────────────────────────────────────────────
+const [, , subcommand, flag] = process.argv;
+const demo = flag === "--demo";
+switch (subcommand) {
+    case "init":
+        await cmdInit(demo);
+        break;
+    case "start":
+        await cmdStart();
+        break;
+    case "stop":
+        await cmdStop();
+        break;
+    case "status":
+        await cmdStatus();
+        break;
+    case "help":
+    case "--help":
+    case "-h":
+        cmdHelp();
+        break;
+    default:
+        await cmdInit(demo);
+        break; // bare `npx operatorboard` = init
+}

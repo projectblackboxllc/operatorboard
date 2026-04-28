@@ -13,9 +13,7 @@
     "ai", "agents", "governance", "control-plane", "llm", "approval", "operatorboard"
   ],
   "type": "module",
-  "bin": {
-    "operatorboard": "./dist/cli.js"
-  },
+  "bin": "./dist/cli.js",
   "files": [
     "dist"
   ],
