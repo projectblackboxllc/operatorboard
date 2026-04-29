@@ -1,20 +1,26 @@
 {
   "name": "operatorboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Human-governed control plane for AI agents — CLI setup tool",
   "license": "MIT",
   "author": "Project Black Box LLC",
   "homepage": "https://operatorboard.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/projectblackboxllc/operatorboard"
+    "url": "git+https://github.com/projectblackboxllc/operatorboard.git"
   },
   "keywords": [
-    "ai", "agents", "governance", "control-plane", "llm", "approval", "operatorboard"
+    "ai",
+    "agents",
+    "governance",
+    "control-plane",
+    "llm",
+    "approval",
+    "operatorboard"
   ],
   "type": "module",
   "bin": {
-    "operatorboard": "./dist/cli.js"
+    "operatorboard": "dist/cli.js"
   },
   "files": [
     "dist"
