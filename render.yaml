@@ -1,0 +1,33 @@
+## OperatorBoard — Render Blueprint
+## Deploys the API control plane. For the full stack (API + Dashboard),
+## run docker compose locally or add a second Render service for apps/web.
+
+services:
+  - type: web
+    name: operatorboard-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: false
+    disk:
+      name: operatorboard-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: OPERATORBOARD_API_KEY
+        generateValue: true
+      - key: PORT
+        value: 4100
+      - key: HOST
+        value: 0.0.0.0
+      - key: OPERATORBOARD_DB_PATH
+        value: /data/operatorboard.sqlite
+      - key: OPERATORBOARD_SEED
+        value: "false"
+      - key: OPERATORBOARD_ENABLE_DEV_ROUTES
+        value: "false"
+      - key: OPERATORBOARD_TASK_TIMEOUT_MS
+        value: "60000"
+      - key: NODE_ENV
+        value: production

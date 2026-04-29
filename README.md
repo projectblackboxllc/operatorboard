@@ -8,11 +8,16 @@
 
 [![CI](https://github.com/projectblackboxllc/operatorboard/actions/workflows/ci.yml/badge.svg)](https://github.com/projectblackboxllc/operatorboard/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![npm](https://img.shields.io/npm/v/operatorboard.svg)](https://www.npmjs.com/package/operatorboard)
 [![Node 20+](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](package.json)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-informational)](tsconfig.base.json)
 [![Stack](https://img.shields.io/badge/stack-Next.js%20%2B%20Fastify%20%2B%20SQLite-lightgrey)](apps/)
 
 [Docs](docs/) · [Security](SECURITY.md) · [Disclaimer](DISCLAIMER.md) · [Changelog](CHANGELOG.md) · [operatorboard.dev](https://operatorboard.dev)
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/projectblackboxllc/operatorboard&envs=OPERATORBOARD_API_KEY&OPERATORBOARD_API_KEYDesc=Strong+random+API+key+%28run%3A+openssl+rand+-hex+32%29)
+&nbsp;&nbsp;
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/projectblackboxllc/operatorboard)
 
 <br/>
 
@@ -119,38 +124,47 @@ Agents start conservative. As they build a track record — high approval rate, 
 
 ## Quick start
 
-### Local development
+### One-click cloud deploy
+
+Deploy the OperatorBoard API in seconds — no terminal required:
+
+| Platform | Notes |
+|---|---|
+| [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/projectblackboxllc/operatorboard&envs=OPERATORBOARD_API_KEY&OPERATORBOARD_API_KEYDesc=Strong+random+API+key+%28run%3A+openssl+rand+-hex+32%29) | Auto-generates API key, persistent disk, health checks wired |
+| [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/projectblackboxllc/operatorboard) | Uses `render.yaml` blueprint — API key auto-generated |
+
+> Full stack (API + Dashboard) on cloud: add a second service pointing at `apps/web/Dockerfile` with `NEXT_PUBLIC_API_URL` set to your API URL. For local evaluation, Docker Compose below runs both with one command.
+
+### Docker (full stack, recommended)
 
 ```bash
-# 1. Clone and install
-git clone https://github.com/projectblackboxllc/operatorboard.git
-cd operatorboard
-pnpm install
-
-# 2. Configure environment
-cp apps/api/.env.example apps/api/.env
-cp apps/web/.env.example apps/web/.env
-# Set OPERATORBOARD_API_KEY — use a strong random value:
-#   openssl rand -hex 32
-
-# 3. Start with demo seed data
-OPERATORBOARD_SEED=true OPERATORBOARD_ENABLE_DEV_ROUTES=true pnpm dev
-
-# API       → http://localhost:4100
-# Dashboard → http://localhost:4300
-```
-
-### Docker (recommended for production evaluation)
-
-```bash
+# Generate a strong API key and start the full stack
 export OPERATORBOARD_API_KEY=$(openssl rand -hex 32)
 docker compose up
 
 # Dashboard → http://localhost:3000
 # API       → http://localhost:4100
 
-# Add the mock agent for a full demo:
+# Include the mock agent for a full demo:
 docker compose --profile demo up
+```
+
+### Local development
+
+```bash
+git clone https://github.com/projectblackboxllc/operatorboard.git
+cd operatorboard
+pnpm install
+
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+# Edit apps/api/.env — set OPERATORBOARD_API_KEY to: openssl rand -hex 32
+
+# Start with demo seed data
+OPERATORBOARD_SEED=true OPERATORBOARD_ENABLE_DEV_ROUTES=true pnpm dev
+
+# API       → http://localhost:4100
+# Dashboard → http://localhost:4300
 ```
 
 ---

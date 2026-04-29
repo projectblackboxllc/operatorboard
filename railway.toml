@@ -1,0 +1,20 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "apps/api/Dockerfile"
+
+[deploy]
+healthcheckPath = "/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 5
+
+# Required environment variables:
+#   OPERATORBOARD_API_KEY — generate with: openssl rand -hex 32
+#
+# Optional:
+#   OPERATORBOARD_SEED=true          — load demo data on first boot
+#   OPERATORBOARD_CORS_ORIGINS       — comma-separated allowed origins
+#   OPERATORBOARD_TASK_TIMEOUT_MS    — default 60000
+#
+# Full stack (API + Dashboard): use docker-compose.yml locally or
+# add a second Railway service pointing at apps/web/Dockerfile.
