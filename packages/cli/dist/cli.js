@@ -3,8 +3,13 @@ import { randomBytes } from "node:crypto";
 import { execSync } from "node:child_process";
 import { existsSync, writeFileSync } from "node:fs";
 import { mkdirSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { join, resolve, dirname } from "node:path";
 import { createInterface } from "node:readline";
+import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const pkg = createRequire(import.meta.url)(join(__dirname, "../package.json"));
+const VERSION = pkg.version;
 // ── ANSI colours (no deps) ────────────────────────────────────────────────────
 const c = {
     reset: "\x1b[0m",
@@ -33,7 +38,7 @@ function hr() { log(`${c.gray}  ${"─".repeat(54)}${c.reset}`); }
 function banner() {
     log("");
     log(`${c.bold}${c.magenta}   ╔══════════════════════════════════════════════╗${c.reset}`);
-    log(`${c.bold}${c.magenta}   ║${c.reset}  ${c.bold}${c.white}OperatorBoard${c.reset}  ${c.gray}v0.1.0${c.reset}                        ${c.bold}${c.magenta}║${c.reset}`);
+    log(`${c.bold}${c.magenta}   ║${c.reset}  ${c.bold}${c.white}OperatorBoard${c.reset}  ${c.gray}v${VERSION}${c.reset}                        ${c.bold}${c.magenta}║${c.reset}`);
     log(`${c.bold}${c.magenta}   ║${c.reset}  ${c.dim}Human-governed control plane for AI agents${c.reset}  ${c.bold}${c.magenta}║${c.reset}`);
     log(`${c.bold}${c.magenta}   ╚══════════════════════════════════════════════╝${c.reset}`);
     log("");

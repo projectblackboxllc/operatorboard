@@ -1,6 +1,6 @@
 {
   "name": "operatorboard",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Human-governed control plane for AI agents — CLI setup tool",
   "license": "MIT",
   "author": "Project Black Box LLC",
